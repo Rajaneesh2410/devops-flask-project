@@ -51,21 +51,30 @@ pipeline {
                 sh '''
                     set -eu
 
-                    docker rm -f flask-ci-test || true
+                    docker rm -f flask-ci-test >/dev/null 2>&1 || true
 
                     cleanup() {
                         docker rm -f flask-ci-test >/dev/null 2>&1 || true
                     }
                     trap cleanup EXIT
 
-                    docker run -d \
-                        --name flask-ci-test \
+                    docker run -d --name flask-ci-test \
                         -p 127.0.0.1:5001:5000 \
                         devops-flask-app:${BUILD_NUMBER}
 
-                    curl --fail --retry 10 \
-                        --retry-connrefused --retry-delay 1 \
-                        http://localhost:5001/health
+                    for i in $(seq 1 30); do
+                        if curl -fsS http://localhost:5001/health; then
+                            echo "Smoke test passed!"
+                            exit 0
+                        fi
+
+                        echo "Waiting for Flask application... attempt $i"
+                        sleep 2
+                    done
+
+                    echo "Smoke test failed. Container logs:"
+                    docker logs flask-ci-test
+                    exit 1
                 '''
             }
         }
@@ -120,4 +129,4 @@ pipeline {
         }
     }
 }
-         
+
