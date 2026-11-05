@@ -16,15 +16,19 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            steps {
-                sh '''
-                    python3 -m venv .venv
-                    .venv/bin/python -m pip install --upgrade pip
-                    .venv/bin/python -m pip install -r requirements.txt
-                    .venv/bin/python -m pip install pytest
-                '''
-            }
-        }
+    steps {
+        sh '''
+            set -eu
+
+            rm -rf .venv
+            python3 -m venv .venv
+
+            .venv/bin/python -m pip install --no-cache-dir --upgrade pip
+            .venv/bin/python -m pip install --no-cache-dir -r requirements.txt
+            .venv/bin/python -m pip install --no-cache-dir pytest
+        '''
+    }
+}
 
         stage('Unit Tests') {
             steps {
